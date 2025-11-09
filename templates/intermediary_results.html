@@ -1,0 +1,131 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="mb-3">
+    <a href="{{ url_for('url_history', url=scan.start_url) }}" class="text-decoration-none">
+        <i class="bi bi-arrow-left"></i> Back to Scan History
+    </a>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>Raw Scan Data</h2>
+        <p class="lead mb-0">For: {{ scan.start_url }}</p>
+    </div>
+    <div>
+        {% if scan.status == 'completed' %}
+            <a href="{{ url_for('view_results', scan_id=scan.id) }}" class="btn btn-success">
+                <i class="bi bi-file-earmark-text-fill"></i> View Analysis Report
+            </a>
+        {% else %}
+            <span class="badge bg-info fs-6">Ready for Analysis</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row text-center mb-5">
+    <div class="col-md-4">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <h1 class="display-4">{{ scan.new_urls_count }}</h1>
+                <p class="card-text fs-5">New URLs</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-warning text-dark h-100">
+            <div class="card-body">
+                <h1 class="display-4">{{ scan.updated_urls_count }}</h1>
+                <p class="card-text fs-5">Updated URLs</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-secondary text-white h-100">
+            <div class="card-body">
+                <h1 class="display-4">{{ scan.existing_urls_count }}</h1>
+                <p class="card-text fs-5">Existing URLs</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if scan.status == 'crawled' %}
+<div class="text-center mb-5">
+    <button id="start-analysis-btn" class="btn btn-primary btn-lg px-5 py-3">
+        <i class="bi bi-graph-up-arrow me-2"></i> Analyze Website Data
+    </button>
+    <div id="analysis-spinner" class="spinner-border text-primary mt-3" role="status" style="display: none;">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <p id="analysis-text" class="text-muted mt-2" style="display: none;">Running analysis on stored data...</p>
+</div>
+{% endif %}
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">All URLs Found ({{ pages|length }})</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>URL</th>
+                        <th>Status Code</th>
+                        <th>Crawl Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for page in pages %}
+                    <tr>
+                        <td class="text-break"><a href="{{ page.url }}" target="_blank">{{ page.url }}</a></td>
+                        <td>
+                            <span class="badge bg-{% if page.status_code == 200 %}success{% elif page.status_code == 404 %}danger{% else %}warning{% endif %}">
+                                {{ page.status_code }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if page.crawl_status == 'new' %}
+                                <span class="badge bg-success">New</span>
+                            {% elif page.crawl_status == 'updated' %}
+                                <span class="badge bg-warning text-dark">Updated</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Existing</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if scan.status == 'crawled' %}
+<script>
+$(document).ready(function() {
+    $('#start-analysis-btn').on('click', function() {
+        $(this).hide();
+        $('#analysis-spinner').show();
+        $('#analysis-text').show();
+
+        $.ajax({
+            type: 'POST',
+            url: '/analyze/{{ scan.id }}',
+            success: function(response) {
+                window.location.href = "{{ url_for('view_results', scan_id=scan.id) }}";
+            },
+            error: function(err) {
+                alert('Analysis failed. Please try again.');
+                $('#start-analysis-btn').show();
+                $('#analysis-spinner').hide();
+                $('#analysis-text').hide();
+            }
+        });
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

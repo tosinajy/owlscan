@@ -1,6 +1,7 @@
 # models.py
 
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import Text
 
 db = SQLAlchemy()
 
@@ -13,16 +14,22 @@ class Scan(db.Model):
     __tablename__ = 'scans'
     id = db.Column(db.Integer, primary_key=True)
     start_url = db.Column(db.String(2083), nullable=False)
-    status = db.Column(db.Enum('pending', 'running', 'completed', 'failed'), nullable=False, default='pending')
+    status = db.Column(db.Enum('pending', 'crawling', 'crawled', 'analyzing', 'completed', 'failed'), nullable=False, default='pending')
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
-    # NEW COLUMN:
     total_issues = db.Column(db.Integer, default=0)
+
+    # Intermediary Raw Data Stats
+    new_urls_count = db.Column(db.Integer, default=0)
+    updated_urls_count = db.Column(db.Integer, default=0)
+    existing_urls_count = db.Column(db.Integer, default=0)
+
+    # Stored Analysis Data
+    analysis_json = db.Column(Text, nullable=True)
     
     pages = db.relationship('Page', backref='scan', lazy=True, cascade="all, delete-orphan")
     links = db.relationship('Link', backref='scan', lazy=True, cascade="all, delete-orphan")
     images = db.relationship('Image', backref='scan', lazy=True, cascade="all, delete-orphan")
 
-# ... (Keep Page, Link, and Image models exactly as they were in the previous step) ...
 class Page(db.Model):
     __tablename__ = 'pages'
     id = db.Column(db.Integer, primary_key=True)
@@ -34,6 +41,9 @@ class Page(db.Model):
     content_hash = db.Column(db.String(64))
     is_orphan = db.Column(db.Boolean, default=False)
     incoming_links = db.Column(db.Integer, default=0)
+    crawl_status = db.Column(db.Enum('new', 'updated', 'existing'), default='new')
+    # NEW: Store full HTML content for successful requests
+    html_content = db.Column(db.Text, nullable=True)
 
 class Link(db.Model):
     __tablename__ = 'links'
