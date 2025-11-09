@@ -1,0 +1,11 @@
+<div class="accordion-item">
+    <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTitles">Title Issues <span class="badge bg-info text-dark ms-2">{{ analysis.missing_titles|length + analysis.duplicate_titles|length + analysis.long_titles|length + analysis.short_titles|length }}</span></button></h2>
+    <div id="collapseTitles" class="accordion-collapse collapse" data-bs-parent="#resultsAccordion">
+        <div class="accordion-body">
+            {% if analysis.missing_titles %}<h5>Missing Titles</h5><ul>{% for page in analysis.missing_titles %}<li><a href="{{ page.url }}" target="_blank">{{ page.url }}</a></li>{% endfor %}</ul>{% endif %}
+            {% if analysis.long_titles %}<h5>Long Titles (&gt; {{ settings.max_title_length }} chars)</h5><ul>{% for page in analysis.long_titles %}<li><a href="{{ page.url }}" target="_blank">{{ page.url }}</a> ({{ page.title|length }} chars)</li>{% endfor %}</ul>{% endif %}
+            {% if analysis.short_titles %}<h5>Short Titles (&lt; {{ settings.min_title_length }} chars)</h5><ul>{% for page in analysis.short_titles %}<li><a href="{{ page.url }}" target="_blank">{{ page.url }}</a> ({{ page.title|length }} chars)</li>{% endfor %}</ul>{% endif %}
+            {% if analysis.duplicate_titles %}<h5>Duplicate Titles</h5><ul>{% for title, pages in analysis.duplicate_titles.items() %}<li>"{{ title }}" found on {{ pages|length }} pages:<ul>{% for page in pages %}<li><a href="{{ page.url }}" target="_blank">{{ page.url }}</a></li>{% endfor %}</ul></li>{% endfor %}</ul>{% endif %}
+        </div>
+    </div>
+</div>

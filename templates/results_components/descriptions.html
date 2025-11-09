@@ -1,0 +1,11 @@
+<div class="accordion-item">
+    <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDescriptions">Meta Description Issues <span class="badge bg-info text-dark ms-2">{{ analysis.missing_descriptions|length + analysis.duplicate_descriptions|length + analysis.long_descriptions|length + analysis.short_descriptions|length }}</span></button></h2>
+    <div id="collapseDescriptions" class="accordion-collapse collapse" data-bs-parent="#resultsAccordion">
+        <div class="accordion-body">
+            {% if analysis.missing_descriptions %}<h5>Missing Descriptions</h5><ul>{% for page in analysis.missing_descriptions %}<li><a href="{{ page.url }}" target="_blank">{{ page.url }}</a></li>{% endfor %}</ul>{% endif %}
+            {% if analysis.long_descriptions %}<h5>Long Descriptions (&gt; {{ settings.max_desc_length }} chars)</h5><ul>{% for page in analysis.long_descriptions %}<li><a href="{{ page.url }}" target="_blank">{{ page.url }}</a> ({{ page.meta_description|length }} chars)</li>{% endfor %}</ul>{% endif %}
+            {% if analysis.short_descriptions %}<h5>Short Descriptions (&lt; {{ settings.min_desc_length }} chars)</h5><ul>{% for page in analysis.short_descriptions %}<li><a href="{{ page.url }}" target="_blank">{{ page.url }}</a> ({{ page.meta_description|length }} chars)</li>{% endfor %}</ul>{% endif %}
+            {% if analysis.duplicate_descriptions %}<h5>Duplicate Descriptions</h5><ul>{% for desc, pages in analysis.duplicate_descriptions.items() %}<li>"{{ desc|truncate(70) }}" found on {{ pages|length }} pages:<ul>{% for page in pages %}<li><a href="{{ page.url }}" target="_blank">{{ page.url }}</a></li>{% endfor %}</ul></li>{% endfor %}</ul>{% endif %}
+        </div>
+    </div>
+</div>

@@ -1,0 +1,47 @@
+<div class="accordion-item">
+    <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseContentMetrics">
+            Content Metrics & Analysis <span class="badge bg-secondary ms-2">Info</span>
+        </button>
+    </h2>
+    <div id="collapseContentMetrics" class="accordion-collapse collapse" data-bs-parent="#resultsAccordion">
+        <div class="accordion-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0" style="font-size: 0.9rem;">
+                    <thead class="table-light">
+                        <tr>
+                            <th>URL</th>
+                            <th>Words</th>
+                            <th>Read Time</th>
+                            <th>Flesch Score</th>
+                            <th>H1s</th>
+                            <th>Links (In/Ex)</th>
+                            <th>Top Keywords</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in pages %}
+                        <tr>
+                            <td class="text-truncate" style="max-width: 200px;"><a href="{{ p.url }}" target="_blank" title="{{ p.url }}">{{ p.url }}</a></td>
+                            <td>{{ p.word_count }}</td>
+                            <td>~{{ p.reading_time_min }}m</td>
+                            <td>
+                                <span class="badge {% if p.flesch_score >= 60 %}bg-success{% elif p.flesch_score >= 30 %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ p.flesch_score }}
+                                </span>
+                            </td>
+                             <td>
+                                <span class="badge {% if p.h1_count == 1 %}bg-success{% elif p.h1_count == 0 %}bg-danger{% else %}bg-warning{% endif %}">
+                                    {{ p.h1_count }}
+                                </span>
+                            </td>
+                            <td>{{ p.internal_links_count }} / {{ p.external_links_count }}</td>
+                            <td class="small text-muted"><em>{{ p.top_keywords|truncate(40) }}</em></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

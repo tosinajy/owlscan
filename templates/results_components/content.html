@@ -1,0 +1,9 @@
+<div class="accordion-item">
+    <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseContent">Content & URL Issues <span class="badge bg-info text-dark ms-2">{{ analysis.duplicate_content|length + analysis.orphaned_pages|length }}</span></button></h2>
+    <div id="collapseContent" class="accordion-collapse collapse" data-bs-parent="#resultsAccordion">
+        <div class="accordion-body">
+            {% if analysis.duplicate_content %}<h5>Duplicate Pages</h5><p>Pages that have identical content.</p><ul>{% for hash, pages in analysis.duplicate_content.items() %}<li>A group of {{ pages|length }} pages have duplicate content:<ul>{% for page in pages %}<li><a href="{{ page.url }}" target="_blank">{{ page.url }}</a></li>{% endfor %}</ul></li>{% endfor %}</ul>{% endif %}
+            {% if analysis.orphaned_pages %}<h5>Orphaned Pages</h5><p>Pages found in the sitemap but not linked to from any other crawled page.</p><ul>{% for page in analysis.orphaned_pages %}<li><a href="{{ page.url }}" target="_blank">{{ page.url }}</a></li>{% endfor %}</ul>{% endif %}
+        </div>
+    </div>
+</div>
