@@ -20,6 +20,12 @@ def normalize_url(url):
         path = path[:-1]
     return parsed._replace(scheme=scheme, netloc=netloc, path=path, fragment='').geturl()
 
+# --- NEW: CENTRALIZED EXCLUSION LOGIC ---
+def is_excluded(url):
+    """Checks if a URL contains terms that should be excluded from being treated as a Page."""
+    return any(excluded in url for excluded in ['/category/', '/wp-content/'])
+# ----------------------------------------
+
 def check_link_status(url):
     try:
         # Use a distinct user agent or handle rate limits if possible, 
@@ -85,8 +91,11 @@ def run_crawler(app, db, scan_id):
                     if resp.status_code == 200:
                         soup = BeautifulSoup(resp.content, 'xml')
                         for loc in soup.find_all('loc'):
-                            urls_to_visit.add(normalize_url(loc.text.strip()))
-                            sitemap_urls.add(normalize_url(loc.text.strip()))
+                            url = normalize_url(loc.text.strip())
+                            # --- NEW: Apply exclusion to sitemap URLs ---
+                            if not is_excluded(url):
+                                urls_to_visit.add(url)
+                                sitemap_urls.add(url)
                 except Exception as e:
                      print(f"Error fetching sitemap: {e}")
             else:
@@ -97,15 +106,26 @@ def run_crawler(app, db, scan_id):
                     if sitemap_res.status_code == 200:
                         sitemap_soup = BeautifulSoup(sitemap_res.content, 'xml')
                         for loc in sitemap_soup.find_all('loc'):
-                            sitemap_urls.add(normalize_url(loc.text.strip()))
+                            url = normalize_url(loc.text.strip())
+                            # --- NEW: Apply exclusion to inferred sitemap URLs ---
+                            if not is_excluded(url):
+                                sitemap_urls.add(url)
                 except Exception:
                     pass
 
             # 3. CRAWLING LOOP
+            pages_processed = 0 # Counter for commit frequency
             while urls_to_visit:
                 if len(visited_urls) >= max_pages: break
 
                 current_url = urls_to_visit.pop()
+
+                # --- EXCLUSION LOGIC ---
+                # Skip if URL contains excluded terms
+                if any(excluded in current_url for excluded in ['/category/', '/wp-content/']):
+                    continue
+                # -----------------------
+                
                 if urlparse(current_url).netloc != domain and not is_sitemap_scan: continue
                 if current_url in visited_urls: continue
                 
@@ -117,7 +137,6 @@ def run_crawler(app, db, scan_id):
                     page_info = { 'scan_id': scan_id, 'url': current_url, 'status_code': response.status_code }
                     
                     if response.status_code == 200 and 'text/html' in response.headers.get('Content-Type', ''):
-                        # NEW: Save HTML content
                         page_info['html_content'] = response.text
                         
                         soup = BeautifulSoup(response.content, 'html.parser')
@@ -136,17 +155,26 @@ def run_crawler(app, db, scan_id):
                             page_info['crawl_status'] = 'existing'
                             scan.existing_urls_count += 1
 
+                    pages_processed += 1
+                    # Save progress to DB every 5 pages so the UI can see it
+                    if pages_processed % 5 == 0:
+                        db.session.commit()
+                    # --------------------------------
+                    
                         # Link Analysis
                         for link in soup.find_all('a', href=True):
                             href = link['href']
                             if not href or href.startswith(('#', 'mailto:', 'tel:', 'javascript:')): continue
                             full_url = urljoin(current_url, href)
                             if urlparse(full_url).path.lower().endswith('.xml'): continue
+                            
+                            # --- NEW: Skip excluded URLs during link discovery ---
+                            if is_excluded(full_url): continue
+
                             normalized_url = normalize_url(full_url)
                             
                             if urlparse(normalized_url).netloc == domain:
                                 link_status = check_link_status(normalized_url)
-                                # Note: We still mark 429 as broken here for raw data, but will filter later in analysis
                                 is_broken = not (200 <= link_status < 400) and link_status != 0
                                 db.session.add(Link(scan_id=scan_id, source_url=current_url, target_url=normalized_url, anchor_text=link.text.strip(), status_code=link_status, is_broken=is_broken))
                                 link_graph[normalized_url].add(current_url)
@@ -171,6 +199,10 @@ def run_crawler(app, db, scan_id):
             # 4. SAVE INTERMEDIARY RAW DATA
             for url in crawled_urls.union(sitemap_urls):
                  if urlparse(url).path.lower().endswith('.xml'): continue
+                 
+                 # --- NEW: Final safety check before adding to Page table ---
+                 if is_excluded(url): continue
+                 
                  page_info = page_data_cache.get(url, { 'scan_id': scan_id, 'url': url, 'status_code': 404, 'crawl_status': 'existing' })
                  page_info['incoming_links'] = len(link_graph.get(url, []))
                  page_info['is_orphan'] = (not is_sitemap_scan) and (url in sitemap_urls) and (url not in crawled_urls)

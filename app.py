@@ -194,7 +194,22 @@ def perform_analysis(scan_id):
 @app.route('/scan_status/<int:scan_id>')
 def scan_status(scan_id):
     scan = db.session.get(Scan, scan_id)
-    return jsonify({'status': scan.status if scan else 'not_found'})
+    if not scan:
+        return jsonify({'status': 'not_found'})
+    
+    # 1. Get current progress
+    current_count = scan.new_urls_count + scan.updated_urls_count + scan.existing_urls_count
+    
+    # 2. Get the max limit to calculate percentage
+    # We fetch it freshly here in case it changed, or you can cache it.
+    max_pages_setting = Setting.query.filter_by(setting_key='max_pages_limit').first()
+    max_pages = int(max_pages_setting.setting_value) if max_pages_setting else 200
+
+    return jsonify({
+        'status': scan.status,
+        'current': current_count,
+        'total': max_pages
+    })
 
 @app.route('/history')
 def history():
