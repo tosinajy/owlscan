@@ -1,63 +1,276 @@
 {% extends "layout.html" %}
 {% block content %}
-<div class="mb-3">
-    <a href="{{ url_for('url_history', url=scan.start_url) }}" class="text-decoration-none">
-        <i class="bi bi-arrow-left"></i> Back to Scan History
-    </a>
-</div>
-
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2>Analysis Report</h2>
-        <p class="lead mb-0">For: <a href="{{ scan.start_url }}" target="_blank">{{ scan.start_url }}</a></p>
+        <a href="{{ url_for('url_history', url=scan.start_url) }}" class="text-decoration-none text-muted small fw-bold text-uppercase">
+            <i class="bi bi-arrow-left"></i> Back to History
+        </a>
+        <h2 class="mt-2 fw-bold">Scan Report</h2>
+        <p class="text-muted mb-0">{{ scan.start_url }} <span class="mx-2">•</span> {{ scan.created_at.strftime('%b %d, %Y') }}</p>
     </div>
-    <div>
-        <span id="status-badge" class="badge fs-6 text-capitalize bg-{% if scan.status == 'completed' %}success{% elif scan.status in ['crawling', 'analyzing'] %}warning text-dark{% else %}danger{% endif %}">{{ scan.status }}</span>
+    <div class="d-flex align-items-center gap-3">
+        <span class="badge rounded-pill px-3 py-2 fs-6 text-capitalize bg-{% if scan.status == 'completed' %}success{% elif scan.status in ['crawling', 'analyzing'] %}warning text-dark{% else %}danger{% endif %}">
+            <i class="bi bi-circle-fill small me-1"></i> {{ scan.status }}
+        </span>
+        {% if scan.status == 'completed' and analysis %}
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('chat_page', scan_id=scan.id) }}" class="btn btn-primary">
+                <i class="bi bi-robot me-1"></i> AInalyze
+            </a>
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-download me-1"></i> Export
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#" id="btn-export-pdf"><i class="bi bi-file-pdf me-2 text-danger"></i>Export PDF</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('export_csv', scan_id=scan.id) }}"><i class="bi bi-file-earmark-spreadsheet me-2 text-success"></i>Export CSV</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('export_json', scan_id=scan.id) }}"><i class="bi bi-filetype-json me-2 text-warning"></i>Export JSON</a></li>
+            </ul>
+        </div>
+        {% endif %}
     </div>
 </div>
 
 {% if scan.status == 'completed' and analysis %}
-<div class="d-flex justify-content-end mb-3">
-    <div class="btn-group">
-        <a href="{{ url_for('export_csv', scan_id=scan.id) }}" class="btn btn-outline-success"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</a>
-        <a href="{{ url_for('export_json', scan_id=scan.id) }}" class="btn btn-outline-secondary"><i class="bi bi-filetype-json"></i> Export JSON</a>
+<div id="report-content">
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="row g-3">
+                <div class="col-md-3 col-6">
+                    <div class="card h-100 border-0 bg-primary bg-opacity-10">
+                        <div class="card-body text-center p-3">
+                            <i class="bi bi-globe fs-1 text-primary mb-2"></i>
+                            <h3 class="fw-bold mb-0">{{ analysis.total_pages }}</h3>
+                            <span class="small text-muted text-uppercase fw-bold">Pages Crawled</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="card h-100 border-0 bg-danger bg-opacity-10">
+                        <div class="card-body text-center p-3">
+                            <i class="bi bi-link-45deg fs-1 text-danger mb-2"></i>
+                            <h3 class="fw-bold mb-0">{{ analysis.broken_links|length }}</h3>
+                            <span class="small text-muted text-uppercase fw-bold">Broken Links</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="card h-100 border-0 bg-warning bg-opacity-10">
+                        <div class="card-body text-center p-3">
+                            <i class="bi bi-card-heading fs-1 text-warning mb-2"></i>
+                            <h3 class="fw-bold mb-0">{{ analysis.missing_titles|length + analysis.missing_descriptions|length }}</h3>
+                            <span class="small text-muted text-uppercase fw-bold">Missing Meta</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="card h-100 border-0 bg-info bg-opacity-10">
+                        <div class="card-body text-center p-3">
+                            <i class="bi bi-card-image fs-1 text-info mb-2"></i>
+                            <h3 class="fw-bold mb-0">{{ analysis.large_images|length }}</h3>
+                            <span class="small text-muted text-uppercase fw-bold">Large Images</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+             <div class="row g-3 mt-1">
+                 <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex align-items-center">
+                             <div class="flex-shrink-0 btn btn-lg btn-light-secondary pe-none">
+                                <i class="bi bi-file-earmark-x text-secondary fs-4"></i>
+                             </div>
+                             <div class="flex-grow-1 ms-3">
+                                 <h5 class="mb-0 fw-bold">{{ analysis.thin_content_pages|length }}</h5>
+                                 <span class="text-muted small">Thin Content Pages</span>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex align-items-center">
+                             <div class="flex-shrink-0 btn btn-lg btn-light-info pe-none">
+                                <i class="bi bi-card-image text-info fs-4"></i>
+                             </div>
+                             <div class="flex-grow-1 ms-3">
+                                 <h5 class="mb-0 fw-bold">{{ analysis.missing_alt_images|length }}</h5>
+                                 <span class="text-muted small">Missing Alt</span>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+                 <div class="col-md-4">
+                    <div class="card h-100">
+                         <div class="card-body d-flex align-items-center">
+                             <div class="flex-shrink-0 btn btn-lg btn-light-primary pe-none">
+                                <i class="bi bi-spellcheck text-primary fs-4"></i>
+                             </div>
+                             <div class="flex-grow-1 ms-3">
+                                 <h5 class="mb-0 fw-bold">{{ analysis.spelling_issues|length + analysis.grammar_issues|length }}</h5>
+                                 <span class="text-muted small">Spelling/Grammar Issues</span>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                 <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex align-items-center">
+                             <div class="flex-shrink-0 btn btn-lg btn-light-warning pe-none">
+                                <i class="bi bi-card-heading text-warning fs-4"></i>
+                             </div>
+                             <div class="flex-grow-1 ms-3">
+                                 <h5 class="mb-0 fw-bold">{{ analysis.missing_titles|length }}</h5>
+                                 <span class="text-muted small">Missing Titles</span>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body d-flex align-items-center">
+                             <div class="flex-shrink-0 btn btn-lg btn-light-danger pe-none">
+                                <i class="bi bi-exclamation-triangle text-danger fs-4"></i>
+                             </div>
+                             <div class="flex-grow-1 ms-3">
+                                 <h5 class="mb-0 fw-bold">{{ analysis.rate_limit_errors|length }}</h5>
+                                 <span class="text-muted small">Rate Limit (429) Errors</span>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+                 <div class="col-md-4">
+                    <div class="card h-100">
+                         <div class="card-body d-flex align-items-center">
+                             <div class="flex-shrink-0 btn btn-lg btn-light-warning pe-none">
+                                <i class="bi bi-body-text text-warning fs-4"></i>
+                             </div>
+                             <div class="flex-grow-1 ms-3">
+                                 <h5 class="mb-0 fw-bold">{{ analysis.missing_descriptions|length }}</h5>
+                                 <span class="text-muted small">Missing Descriptions</span>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-header bg-transparent fw-bold py-3">Issue Distribution</div>
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 250px;">
+                    <canvas id="issuesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="fw-bold mb-3"><i class="bi bi-list-check me-2"></i>Detailed Findings</h4>
+    <div class="accordion shadow-sm" id="resultsAccordion">
+        {% include 'results_components/content_analysis.html' %}
+        {% include 'results_components/broken_links.html' %}
+        {% include 'results_components/large_images.html' %}
+        {% include 'results_components/missing_alt.html' %}
+        {% include 'results_components/rate_limit_errors.html' %}
+        {% include 'results_components/content_recommendations.html' %}
+        {% include 'results_components/spelling_grammar.html' %}
+        {% include 'results_components/titles.html' %}
+        {% include 'results_components/descriptions.html' %}
+        {% include 'results_components/content.html' %}
+    </div>
+</div>{% elif scan.status in ['pending', 'crawling', 'analyzing'] %}
+<div class="card shadow-sm p-5 text-center">
+    <div class="py-5">
+        <div class="spinner-border text-primary mb-4" style="width: 4rem; height: 4rem;" role="status"></div>
+        <h3 class="fw-bold">Scan in Progress</h3>
+        <p class="text-muted fs-5 mb-0">
+            {% if scan.status == 'crawling' %}
+                Crawling {{ scan.start_url }}...
+            {% elif scan.status == 'analyzing' %}
+                Analyzing content, SEO, and checking for errors...
+            {% else %}
+                Preparing scanner...
+            {% endif %}
+        </p>
     </div>
 </div>
-
-<div class="accordion" id="resultsAccordion">
-    {% include 'results_components/rate_limit_errors.html' %}
-    {% include 'results_components/broken_links.html' %}
-    {% include 'results_components/large_images.html' %}
-    {% include 'results_components/missing_alt.html' %}
-    {% include 'results_components/titles.html' %}
-    {% include 'results_components/descriptions.html' %}
-    {% include 'results_components/content.html' %}
-</div>
-
-{% elif scan.status in ['pending', 'crawling', 'analyzing'] %}
-<div class="text-center mt-5">
-    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
-    <p class="mt-3 fs-5">
-        {% if scan.status == 'crawling' %}
-            Crawling website...
-        {% elif scan.status == 'analyzing' %}
-            Analyzing stored data...
-        {% else %}
-            Starting up...
-        {% endif %}
-    </p>
-</div>
 {% else %}
-<div class="alert alert-danger">
-    <h4>Operation Failed</h4>
-    <p>An error occurred during the {{ scan.status }} phase.</p>
+<div class="alert alert-danger shadow-sm">
+    <h4 class="alert-heading"><i class="bi bi-x-circle-fill me-2"></i>Scan Failed</h4>
+    <p>An unexpected error occurred during the scan. Please check the logs or try again later.</p>
 </div>
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
+{% if scan.status == 'completed' and analysis %}
+<script>
+    // 1. Initialize Issue Chart
+    const ctx = document.getElementById('issuesChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Links', 'Metadata', 'Content', 'Images', 'Spelling/Grammar'],
+                datasets: [{
+                    data: [
+                        {{ analysis.broken_links|length + analysis.rate_limit_errors|length }},
+                        {{ analysis.missing_titles|length + analysis.missing_descriptions|length }},
+                        {{ analysis.thin_content_pages|length + analysis.duplicate_content|length }},
+                        {{ analysis.missing_alt_images|length + analysis.large_images|length }},
+                        {{ analysis.spelling_issues|length + analysis.grammar_issues|length }}
+                    ],
+                    backgroundColor: ['#dc3545', '#ffc107', '#6c757d', '#0dcaf0', '#0d6efd'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
+                },
+                cutout: '70%'
+            }
+        });
+    }
+
+    // 2. PDF Export Functionality
+    document.getElementById('btn-export-pdf').addEventListener('click', function(e) {
+        e.preventDefault();
+        const element = document.getElementById('report-content');
+        const btn = this;
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Generating...';
+
+        // Temporarily open all accordions for full PDF
+        $('.accordion-collapse').addClass('show');
+
+        const opt = {
+            margin: [0.5, 0.5],
+            filename: 'OwlScan_Report_{{ scan.id }}.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+             // Restore UI state
+             $('.accordion-collapse').removeClass('show');
+             // Re-open just the first one or desired default state if needed
+             $('#collapseContentMetrics').addClass('show'); 
+             btn.innerHTML = originalHtml;
+        });
+    });
+</script>
+{% endif %}
+
 {% if scan.status in ['pending', 'crawling', 'analyzing'] %}
 <script>
+    // Polling for status updates
     const scanId = {{ scan.id }};
     function checkStatus() {
         $.getJSON('/scan_status/' + scanId, function(data) {

@@ -1,0 +1,52 @@
+<div class="accordion-item">
+    <h2 class="accordion-header">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseRecommendations">
+            Content Improvement Recommendations
+            <span class="badge bg-info text-dark ms-2">
+                {{ analysis.thin_content_pages|length + analysis.complex_readability|length + analysis.missing_h1|length + analysis.multiple_h1|length }}
+            </span>
+        </button>
+    </h2>
+    <div id="collapseRecommendations" class="accordion-collapse collapse" data-bs-parent="#resultsAccordion">
+        <div class="accordion-body">
+            {% if analysis.thin_content_pages %}
+            <div class="mb-3">
+                <h5 class="text-info"><i class="bi bi-file-earmark-x"></i> Thin Content (< 300 words)</h5>
+                <p>Pages with low word count may struggle to rank in search engines. Consider adding more valuable content.</p>
+                <ul>{% for p in analysis.thin_content_pages[:10] %}<li><a href="{{ p.url }}" target="_blank">{{ p.url }}</a> ({{ p.word_count }} words)</li>{% endfor %}
+                    {% if analysis.thin_content_pages|length > 10 %}<li>...and {{ analysis.thin_content_pages|length - 10 }} more.</li>{% endif %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if analysis.complex_readability %}
+            <div class="mb-3">
+                <h5 class="text-info"><i class="bi bi-book"></i> Complex Readability (Flesch Score < 50)</h5>
+                <p>These pages might be difficult for general audiences to read. Try shortening sentences and using simpler words.</p>
+                 <ul>{% for p in analysis.complex_readability[:10] %}<li><a href="{{ p.url }}" target="_blank">{{ p.url }}</a> (Score: {{ p.flesch_score|int }})</li>{% endfor %}</ul>
+            </div>
+            {% endif %}
+
+            {% if analysis.missing_h1 or analysis.multiple_h1 %}
+            <div class="mb-3">
+                <h5 class="text-danger"><i class="bi bi-type-h1"></i> Heading Structure Issues</h5>
+                <p>Pages should typically have exactly one <code>&lt;h1&gt;</code> tag describing the main topic.</p>
+                {% if analysis.missing_h1 %}
+                    <h6>Missing H1:</h6>
+                    <ul>{% for p in analysis.missing_h1[:5] %}<li><a href="{{ p.url }}" target="_blank">{{ p.url }}</a></li>{% endfor %}</ul>
+                {% endif %}
+                {% if analysis.multiple_h1 %}
+                    <h6>Multiple H1s:</h6>
+                    <ul>{% for p in analysis.multiple_h1[:5] %}<li><a href="{{ p.url }}" target="_blank">{{ p.url }}</a> ({{ p.h1_count }} found)</li>{% endfor %}</ul>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if not analysis.thin_content_pages and not analysis.complex_readability and not analysis.missing_h1 and not analysis.multiple_h1 %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle-fill"></i> No major content structure or readability issues detected!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>

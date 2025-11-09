@@ -17,13 +17,9 @@ class Scan(db.Model):
     status = db.Column(db.Enum('pending', 'crawling', 'crawled', 'analyzing', 'completed', 'failed'), nullable=False, default='pending')
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.now())
     total_issues = db.Column(db.Integer, default=0)
-
-    # Intermediary Raw Data Stats
     new_urls_count = db.Column(db.Integer, default=0)
     updated_urls_count = db.Column(db.Integer, default=0)
     existing_urls_count = db.Column(db.Integer, default=0)
-
-    # Stored Analysis Data
     analysis_json = db.Column(Text, nullable=True)
     
     pages = db.relationship('Page', backref='scan', lazy=True, cascade="all, delete-orphan")
@@ -42,8 +38,22 @@ class Page(db.Model):
     is_orphan = db.Column(db.Boolean, default=False)
     incoming_links = db.Column(db.Integer, default=0)
     crawl_status = db.Column(db.Enum('new', 'updated', 'existing'), default='new')
-    # NEW: Store full HTML content for successful requests
     html_content = db.Column(db.Text, nullable=True)
+
+    # Advanced Analysis Metrics
+    word_count = db.Column(db.Integer, default=0)
+    reading_time_min = db.Column(db.Float, default=0.0)
+    flesch_score = db.Column(db.Float, default=0.0)
+    h1_count = db.Column(db.Integer, default=0)
+    internal_links_count = db.Column(db.Integer, default=0)
+    external_links_count = db.Column(db.Integer, default=0)
+    top_keywords = db.Column(db.Text, nullable=True)
+
+    # NEW: Spelling & Grammar
+    spelling_issues_count = db.Column(db.Integer, default=0)
+    grammar_issues_count = db.Column(db.Integer, default=0)
+    spelling_examples = db.Column(db.Text, nullable=True)
+    grammar_error_context = db.Column(db.Text, nullable=True) # NEW: To store JSON list of grammar snippets
 
 class Link(db.Model):
     __tablename__ = 'links'

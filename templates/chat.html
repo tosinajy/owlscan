@@ -1,0 +1,176 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container-fluid px-0" style="height: calc(100vh - 100px);">
+    <div class="row h-100 g-0">
+        <div class="col-md-3 d-none d-md-block bg-light border-end p-4">
+            <a href="{{ url_for('view_results', scan_id=scan.id) }}" class="btn btn-outline-secondary mb-4">
+                <i class="bi bi-arrow-left me-2"></i> Back to Report
+            </a>
+            <h4 class="fw-bold mb-3">AInalyze Assistant</h4>
+            <p class="text-muted">This AI has reviewed your scan of <strong>{{ scan.start_url }}</strong>.</p>
+            <hr>
+            <h6 class="fw-bold text-uppercase text-muted small mb-3">Suggested Questions</h6>
+            <div class="d-grid gap-2">
+                <button class="btn btn-white text-start border shadow-sm small suggestion-btn">Summarize the top 3 technical issues.</button>
+                <button class="btn btn-white text-start border shadow-sm small suggestion-btn">How can I improve the site's readability?</button>
+                <button class="btn btn-white text-start border shadow-sm small suggestion-btn">Write a better meta description for the homepage.</button>
+            </div>
+        </div>
+
+        <div class="col-md-9 d-flex flex-column h-100">
+             <div class="d-md-none bg-light border-bottom p-3 d-flex justify-content-between align-items-center">
+                <strong class="mb-0"><i class="bi bi-robot me-2"></i>AInalyze</strong>
+                 <a href="{{ url_for('view_results', scan_id=scan.id) }}" class="btn btn-sm btn-outline-secondary">Back</a>
+             </div>
+
+            <div id="chat-history" class="flex-grow-1 p-4 overflow-auto" style="background: #f8f9fa;">
+                <div class="d-flex mb-4">
+                    <div class="flex-shrink-0">
+                        <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="bi bi-robot"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="bg-white p-3 rounded-3 shadow-sm" style="max-width: 80%;">
+                            Hello! I've analyzed the data from your recent scan. I can help you understand the technical issues found, suggest content improvements, or draft new metadata. What would you like to know?
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="border-top bg-white p-3">
+                <form id="chat-form" class="d-flex gap-2">
+                    <input type="text" id="user-input" class="form-control form-control-lg" placeholder="Ask a question about your website scan..." required autocomplete="off">
+                    <button type="submit" id="send-btn" class="btn btn-primary btn-lg px-4">
+                        <i class="bi bi-send-fill"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    const scanId = {{ scan.id }};
+    let chatHistory = [];
+
+    function scrollToBottom() {
+        const container = $('#chat-history');
+        container.scrollTop(container[0].scrollHeight);
+    }
+
+    function appendUserMessage(text) {
+        const html = `
+            <div class="d-flex mb-4 justify-content-end">
+                <div class="flex-grow-1 me-3 text-end">
+                    <div class="bg-primary text-white p-3 rounded-3 shadow-sm d-inline-block text-start" style="max-width: 80%;">
+                        ${text.replace(/\n/g, '<br>')}
+                    </div>
+                </div>
+                <div class="flex-shrink-0">
+                    <div class="avatar bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-person-fill"></i>
+                    </div>
+                </div>
+            </div>`;
+        $('#chat-history').append(html);
+        scrollToBottom();
+    }
+
+    function appendAIMessage(text) {
+        // Basic markdown formatting
+        let formatted = text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/### (.*?)\n/g, '<h5>$1</h5>')
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\n/g, '<br>');
+
+        const html = `
+            <div class="d-flex mb-4">
+                <div class="flex-shrink-0">
+                    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <div class="bg-white p-3 rounded-3 shadow-sm" style="max-width: 80%;">
+                        ${formatted}
+                    </div>
+                </div>
+            </div>`;
+        $('#chat-history').append(html);
+        scrollToBottom();
+    }
+
+    function showSpinner() {
+        const html = `
+            <div id="loading-spinner" class="d-flex mb-4">
+                <div class="flex-shrink-0">
+                     <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <div class="bg-white p-3 rounded-3 shadow-sm d-inline-block">
+                         <div class="spinner-border text-primary spinner-border-sm" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="text-muted ms-2 small">Thinking...</span>
+                    </div>
+                </div>
+            </div>`;
+        $('#chat-history').append(html);
+        scrollToBottom();
+    }
+
+    function removeSpinner() {
+        $('#loading-spinner').remove();
+    }
+
+    function sendMessage(message) {
+        if (!message) return;
+        appendUserMessage(message);
+        $('#user-input').val('');
+        $('#send-btn').prop('disabled', true);
+        showSpinner();
+
+        $.ajax({
+            type: 'POST',
+            url: '/api/chat',
+            contentType: 'application/json',
+            data: JSON.stringify({ scan_id: scanId, message: message, history: chatHistory }),
+            success: function(data) {
+                removeSpinner();
+                if (data.error) {
+                     appendAIMessage('<em>Error: ' + data.error + '</em>');
+                } else {
+                    appendAIMessage(data.response);
+                    chatHistory.push({ role: 'user', content: message });
+                    chatHistory.push({ role: 'assistant', content: data.response });
+                }
+            },
+            error: function() {
+                removeSpinner();
+                appendAIMessage('<em>Sorry, I encountered an error connecting to the server.</em>');
+            },
+            complete: function() {
+                $('#send-btn').prop('disabled', false);
+                $('#user-input').focus();
+            }
+        });
+    }
+
+    $('#chat-form').on('submit', function(e) {
+        e.preventDefault();
+        sendMessage($('#user-input').val().trim());
+    });
+
+    $('.suggestion-btn').on('click', function() {
+        sendMessage($(this).text());
+    });
+});
+</script>
+{% endblock %}
