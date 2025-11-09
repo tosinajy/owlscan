@@ -3,7 +3,7 @@
 <h2><i class="bi bi-gear-fill"></i> Tool Settings</h2>
 <p>Manage the parameters used during the website analysis.</p>
 
-{% with messages = get_flashed_messages(with_categories=true) %}
+<!-- {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     {% for category, message in messages %}
       <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
@@ -12,7 +12,7 @@
       </div>
     {% endfor %}
   {% endif %}
-{% endwith %}
+{% endwith %} -->
 
 <form method="POST" action="{{ url_for('settings') }}">
     <div class="card">

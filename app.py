@@ -76,7 +76,7 @@ def index():
 def start_scan():
     start_url = request.form.get('url')
     if not start_url: return jsonify({'error': 'URL is required'}), 400
-    new_scan = Scan(start_url=start_url, status='pending')
+    new_scan = Scan(start_url=start_url, status='crawling')
     db.session.add(new_scan)
     db.session.commit()
     Thread(target=run_crawler, args=(app, db, new_scan.id), daemon=True).start()
