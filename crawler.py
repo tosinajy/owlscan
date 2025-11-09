@@ -83,7 +83,7 @@ def run_crawler(app, db, scan_id):
                 try:
                     resp = requests.get(scan.start_url, timeout=10)
                     if resp.status_code == 200:
-                        soup = BeautifulSoup(resp.content, 'html.parser')
+                        soup = BeautifulSoup(resp.content, 'xml')
                         for loc in soup.find_all('loc'):
                             urls_to_visit.add(normalize_url(loc.text.strip()))
                             sitemap_urls.add(normalize_url(loc.text.strip()))
@@ -95,7 +95,7 @@ def run_crawler(app, db, scan_id):
                     sitemap_url = urljoin(start_url, '/sitemap.xml')
                     sitemap_res = requests.get(sitemap_url, timeout=5)
                     if sitemap_res.status_code == 200:
-                        sitemap_soup = BeautifulSoup(sitemap_res.content, 'html.parser')
+                        sitemap_soup = BeautifulSoup(sitemap_res.content, 'xml')
                         for loc in sitemap_soup.find_all('loc'):
                             sitemap_urls.add(normalize_url(loc.text.strip()))
                 except Exception:

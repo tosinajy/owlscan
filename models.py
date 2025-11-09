@@ -2,6 +2,7 @@
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Text
+from sqlalchemy.dialects.mysql import LONGTEXT
 
 db = SQLAlchemy()
 
@@ -38,7 +39,7 @@ class Page(db.Model):
     is_orphan = db.Column(db.Boolean, default=False)
     incoming_links = db.Column(db.Integer, default=0)
     crawl_status = db.Column(db.Enum('new', 'updated', 'existing'), default='new')
-    html_content = db.Column(db.Text, nullable=True)
+    html_content = db.Column(LONGTEXT, nullable=True)
 
     # Advanced Analysis Metrics
     word_count = db.Column(db.Integer, default=0)
