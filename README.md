@@ -1,0 +1,11 @@
+# 1) create & activate a virtual environment (optional but recommended)
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
+
+# 2) install dependencies
+pip install -r requirements.txt
+
+# 3) run the app
+python app.py
+# open http://127.0.0.1:5000 in your browser
