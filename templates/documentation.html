@@ -1,0 +1,179 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <h1 class="mb-4"><i class="bi bi-book-half me-2"></i> OwlScan Documentation</h1>
+            <hr class="mb-5">
+
+            <section id="overview" class="mb-5">
+                <h2>Overview</h2>
+                <p class="lead">OwlScan is a Flask-based web application designed to crawl websites and perform comprehensive technical SEO audits, content analysis, and health checks. It provides a user-friendly interface to trigger scans, view detailed reports, track history, and interact with an AI assistant to interpret findings.</p>
+            </section>
+
+            <section id="features" class="mb-5">
+                <h2>Key Features</h2>
+                <div class="row g-4 mt-2">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header fw-bold"><i class="bi bi-bug me-2"></i> 1. Crawler Engine</div>
+                            <div class="card-body">
+                                <ul>
+                                    <li><strong>Sitemap Detection:</strong> Automatically detects and crawls <code>sitemap.xml</code> if present, or starts crawling from the provided URL.</li>
+                                    <li><strong>Crawl Limits:</strong> Configurable maximum page limit (default 200) to prevent timeouts on large sites.</li>
+                                    <li><strong>Exclusion Logic:</strong> Automatically excludes specific paths like <code>/category/</code> and <code>/wp-content/</code> from being treated as pages.</li>
+                                    <li><strong>Change Detection:</strong> Tracks if pages are <span class="badge bg-success">New</span>, <span class="badge bg-warning text-dark">Updated</span>, or <span class="badge bg-secondary">Existing</span> compared to previous scans.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header fw-bold"><i class="bi bi-graph-up me-2"></i> 2. Technical SEO Analysis</div>
+                            <div class="card-body">
+                                <ul>
+                                    <li><strong>Link Health:</strong> Identifies broken internal links and flags "Too Many Requests" (429) rate limit errors.</li>
+                                    <li><strong>Metadata Checks:</strong> Analyzes Title tags and Meta Descriptions for missing values, duplicates, and length issues based on configurable settings.</li>
+                                    <li><strong>Image Auditing:</strong> Flags images missing <code>alt</code> text and large images exceeding size thresholds (default 150KB).</li>
+                                    <li><strong>Content Issues:</strong> Detects duplicate content via hashing and identifies orphaned pages.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header fw-bold"><i class="bi bi-file-text me-2"></i> 3. Content Quality & Readability</div>
+                            <div class="card-body">
+                                <ul>
+                                    <li><strong>Readability Scores:</strong> Calculates Flesch Reading Ease scores and estimated reading time for every page.</li>
+                                    <li><strong>Thin Content:</strong> Flags pages with fewer than 300 words.</li>
+                                    <li><strong>Heading Structure:</strong> Checks for missing H1 tags or multiple H1 tags on a single page.</li>
+                                    <li><strong>Spelling & Grammar:</strong> Performs basic spelling checks and grammar checks (e.g., repeated words, "a" vs "an" usage).</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                         <div class="card h-100">
+                            <div class="card-header fw-bold"><i class="bi bi-robot me-2"></i> 4. AI Assistant (AInalyze) & Reporting</div>
+                            <div class="card-body">
+                                <ul>
+                                    <li><strong>Integrated Chat:</strong> Uses <strong>Ollama</strong> (default model: <code>gemma2:2b</code>) to answer questions about scan results.</li>
+                                    <li><strong>Context Aware:</strong> The AI is fed a summary of technical issues, content metrics, and a homepage excerpt.</li>
+                                    <li><strong>Interactive Dashboard:</strong> Visualizes issue distribution with charts and detailed data tables.</li>
+                                    <li><strong>Exports:</strong> Supports exporting scan data to CSV, JSON, and PDF formats.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="structure" class="mb-5">
+                <h2>Project Structure</h2>
+                <div class="table-responsive mt-3">
+                    <table class="table table-striped table-hover table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width: 30%">File/Directory</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>app.py</code></td>
+                                <td>Main Flask application. Handles routes, initiates crawls, manages AI chat API, and exports.</td>
+                            </tr>
+                            <tr>
+                                <td><code>config.py</code></td>
+                                <td>Database configuration details.</td>
+                            </tr>
+                            <tr>
+                                <td><code>crawler.py</code></td>
+                                <td>Contains the <code>run_crawler</code> function, responsible for fetching pages, parsing HTML/XML, and populating raw data.</td>
+                            </tr>
+                            <tr>
+                                <td><code>helpers.py</code></td>
+                                <td>Utility functions for content analysis (<code>perform_content_analysis</code>), spelling/grammar checks, and aggregating results.</td>
+                            </tr>
+                            <tr>
+                                <td><code>models.py</code></td>
+                                <td>SQLAlchemy database models (<code>Scan</code>, <code>Page</code>, <code>Link</code>, <code>Image</code>, <code>Setting</code>).</td>
+                            </tr>
+                             <tr>
+                                <td><code>requirements.txt</code></td>
+                                <td>Python dependencies list.</td>
+                            </tr>
+                             <tr>
+                                <td><code>static/</code></td>
+                                <td>Contains CSS, JavaScript, and image assets.</td>
+                            </tr>
+                             <tr>
+                                <td><code>templates/</code></td>
+                                <td>Jinja2 HTML templates for the user interface.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="installation" class="mb-5">
+                <h2>Installation & Setup</h2>
+                <h5 class="mt-4">Prerequisites</h5>
+                <ul>
+                    <li>Python 3.8+</li>
+                    <li>MySQL Database</li>
+                    <li>Ollama (running locally for AI features)</li>
+                </ul>
+
+                <h5 class="mt-4">Steps</h5>
+                <ol class="list-group list-group-numbered">
+                    <li class="list-group-item">
+                        <strong>Install Dependencies:</strong>
+                        <pre class="bg-light p-2 mt-2 border rounded"><code>pip install -r requirements.txt</code></pre>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Configure Database:</strong>
+                        <p class="mb-1">Update <code>config.py</code> with your MySQL credentials:</p>
+                         <pre class="bg-light p-2 mt-2 border rounded"><code>SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://&lt;user&gt;:&lt;password&gt;@localhost/&lt;database_name&gt;'</code></pre>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Setup Ollama:</strong>
+                        <p class="mb-1">Ensure Ollama is installed and the required model is pulled:</p>
+                         <pre class="bg-light p-2 mt-2 border rounded"><code>ollama pull gemma2:2b</code></pre>
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Run the Application:</strong>
+                        <pre class="bg-light p-2 mt-2 border rounded"><code>python app.py</code></pre>
+                        <small class="text-muted">The database tables will be created automatically on the first run.</small>
+                    </li>
+                </ol>
+            </section>
+
+            <section id="configuration" class="mb-5">
+                <h2>Configuration</h2>
+                <p>Settings can be adjusted via the web interface at <code>/settings</code>.</p>
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Setting Key</th>
+                                <th>Default</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>min_title_length</code></td><td>10</td><td>Minimum characters for page titles.</td></tr>
+                            <tr><td><code>max_title_length</code></td><td>60</td><td>Maximum characters for page titles.</td></tr>
+                            <tr><td><code>min_desc_length</code></td><td>70</td><td>Minimum characters for meta descriptions.</td></tr>
+                            <tr><td><code>max_desc_length</code></td><td>160</td><td>Maximum characters for meta descriptions.</td></tr>
+                            <tr><td><code>max_image_size_kb</code></td><td>150</td><td>Threshold (in KB) for flagging "large" images.</td></tr>
+                            <tr><td><code>max_pages_limit</code></td><td>200</td><td>Maximum number of pages to crawl per scan.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

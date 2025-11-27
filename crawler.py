@@ -93,23 +93,38 @@ def run_crawler(app, db, scan_id):
                         for loc in soup.find_all('loc'):
                             url = normalize_url(loc.text.strip())
                             # --- NEW: Apply exclusion to sitemap URLs ---
-                            if not is_excluded(url):
-                                urls_to_visit.add(url)
-                                sitemap_urls.add(url)
+                            # if not is_excluded(url):
+                            urls_to_visit.add(url)
+                            sitemap_urls.add(url)
                 except Exception as e:
                      print(f"Error fetching sitemap: {e}")
             else:
                 urls_to_visit.add(start_url)
                 try:
-                    sitemap_url = urljoin(start_url, '/sitemap.xml')
+                    sitemap_url = urljoin(start_url, '/post-sitemap.xml')
                     sitemap_res = requests.get(sitemap_url, timeout=5)
                     if sitemap_res.status_code == 200:
                         sitemap_soup = BeautifulSoup(sitemap_res.content, 'xml')
                         for loc in sitemap_soup.find_all('loc'):
                             url = normalize_url(loc.text.strip())
                             # --- NEW: Apply exclusion to inferred sitemap URLs ---
-                            if not is_excluded(url):
-                                sitemap_urls.add(url)
+                            # if not is_excluded(url):
+                            urls_to_visit.add(url)
+                            sitemap_urls.add(url)
+                except Exception:
+                    pass
+                
+                try:
+                    sitemap_url = urljoin(start_url, '/page-sitemap.xml')
+                    sitemap_res = requests.get(sitemap_url, timeout=5)
+                    if sitemap_res.status_code == 200:
+                        sitemap_soup = BeautifulSoup(sitemap_res.content, 'xml')
+                        for loc in sitemap_soup.find_all('loc'):
+                            url = normalize_url(loc.text.strip())
+                            # --- NEW: Apply exclusion to inferred sitemap URLs ---
+                            # if not is_excluded(url):
+                            urls_to_visit.add(url)
+                            sitemap_urls.add(url)
                 except Exception:
                     pass
 
@@ -122,8 +137,8 @@ def run_crawler(app, db, scan_id):
 
                 # --- EXCLUSION LOGIC ---
                 # Skip if URL contains excluded terms
-                if any(excluded in current_url for excluded in ['/category/', '/wp-content/']):
-                    continue
+                # if any(excluded in current_url for excluded in ['/category/', '/wp-content/']):
+                #     continue
                 # -----------------------
                 
                 if urlparse(current_url).netloc != domain and not is_sitemap_scan: continue

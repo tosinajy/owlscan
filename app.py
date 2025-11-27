@@ -72,6 +72,10 @@ def build_site_context(scan_id):
 def index():
     return render_template('index.html')
 
+@app.route('/documentation')
+def documentation():
+    return render_template('documentation.html')
+
 @app.route('/start_scan', methods=['POST'])
 def start_scan():
     start_url = request.form.get('url')
@@ -214,7 +218,7 @@ def scan_status(scan_id):
 @app.route('/history')
 def history():
     page = request.args.get('page', 1, type=int)
-    per_page = 10
+    per_page = 5
     subq = db.session.query(Scan.start_url, func.max(Scan.created_at).label('max_created_at'), func.count(Scan.id).label('scan_count')).group_by(Scan.start_url).subquery()
     query = db.session.query(Scan, subq.c.scan_count).join(subq, (Scan.start_url == subq.c.start_url) & (Scan.created_at == subq.c.max_created_at)).order_by(desc(Scan.created_at))
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
