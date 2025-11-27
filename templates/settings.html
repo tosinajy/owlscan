@@ -3,19 +3,32 @@
 <h2><i class="bi bi-gear-fill"></i> Tool Settings</h2>
 <p>Manage the parameters used during the website analysis.</p>
 
-<!-- {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    {% for category, message in messages %}
-      <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    {% endfor %}
-  {% endif %}
-{% endwith %} -->
-
 <form method="POST" action="{{ url_for('settings') }}">
     <div class="card">
+        <div class="card-header">Crawler Settings</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="max_pages_limit" class="form-label">Maximum Pages per Scan</label>
+                    <input type="number" class="form-control" id="max_pages_limit" name="max_pages_limit" value="{{ settings.max_pages_limit }}" min="1" max="500">
+                    <div class="form-text">Limits categorization of Post/Pages only.</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="request_interval" class="form-label">Request Interval (Seconds)</label>
+                    <input type="number" class="form-control" id="request_interval" name="request_interval" value="{{ settings.request_interval }}" min="0" max="60">
+                    <div class="form-text">Delay between requests to avoid server overloading.</div>
+                </div>
+            </div>
+             <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="max_image_size_kb" class="form-label">Maximum Image Size (KB)</label>
+                    <input type="number" class="form-control" id="max_image_size_kb" name="max_image_size_kb" value="{{ settings.max_image_size_kb }}">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mt-4">
         <div class="card-header">Title Tag</div>
         <div class="card-body">
             <div class="row">
@@ -42,23 +55,6 @@
                 <div class="col-md-6 mb-3">
                     <label for="max_desc_length" class="form-label">Maximum Length</label>
                     <input type="number" class="form-control" id="max_desc_length" name="max_desc_length" value="{{ settings.max_desc_length }}">
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card mt-4">
-        <div class="card-header">Limits</div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="max_image_size_kb" class="form-label">Maximum Image Size</label>
-                    <input type="number" class="form-control" id="max_image_size_kb" name="max_image_size_kb" value="{{ settings.max_image_size_kb }}">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="max_pages_limit" class="form-label">Maximum Pages per Scan</label>
-                    <input type="number" class="form-control" id="max_pages_limit" name="max_pages_limit" value="{{ settings.max_pages_limit }}" min="1" max="500">
-                    <div class="form-text">Stops the crawler after this many pages to prevent timeouts. Recommended max: 200.</div>
                 </div>
             </div>
         </div>

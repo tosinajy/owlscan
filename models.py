@@ -24,7 +24,6 @@ class Scan(db.Model):
     analysis_json = db.Column(Text, nullable=True)
     
     pages = db.relationship('Page', backref='scan', lazy=True, cascade="all, delete-orphan")
-    links = db.relationship('Link', backref='scan', lazy=True, cascade="all, delete-orphan")
     images = db.relationship('Image', backref='scan', lazy=True, cascade="all, delete-orphan")
 
 class Page(db.Model):
@@ -40,6 +39,8 @@ class Page(db.Model):
     incoming_links = db.Column(db.Integer, default=0)
     crawl_status = db.Column(db.Enum('new', 'updated', 'existing'), default='new')
     html_content = db.Column(LONGTEXT, nullable=True)
+    
+    category = db.Column(db.Enum('page', 'media', 'xml', 'other'), default='other')
 
     # Advanced Analysis Metrics
     word_count = db.Column(db.Integer, default=0)
@@ -50,21 +51,14 @@ class Page(db.Model):
     external_links_count = db.Column(db.Integer, default=0)
     top_keywords = db.Column(db.Text, nullable=True)
 
-    # NEW: Spelling & Grammar
+    # Spelling & Grammar
     spelling_issues_count = db.Column(db.Integer, default=0)
     grammar_issues_count = db.Column(db.Integer, default=0)
     spelling_examples = db.Column(db.Text, nullable=True)
-    grammar_error_context = db.Column(db.Text, nullable=True) # NEW: To store JSON list of grammar snippets
-
-class Link(db.Model):
-    __tablename__ = 'links'
-    id = db.Column(db.Integer, primary_key=True)
-    scan_id = db.Column(db.Integer, db.ForeignKey('scans.id'), nullable=False)
-    source_url = db.Column(db.String(2083), nullable=False)
-    target_url = db.Column(db.String(2083), nullable=False)
-    anchor_text = db.Column(db.Text)
-    status_code = db.Column(db.Integer)
-    is_broken = db.Column(db.Boolean, default=False)
+    grammar_error_context = db.Column(db.Text, nullable=True)
+    
+    # NEW: Advanced SEO AI Recommendations
+    advanced_seo_recs = db.Column(db.Text, nullable=True) 
 
 class Image(db.Model):
     __tablename__ = 'images'

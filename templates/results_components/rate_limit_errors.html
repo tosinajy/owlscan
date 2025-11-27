@@ -10,17 +10,16 @@
             {% if analysis.rate_limit_errors %}
             <div class="alert alert-warning m-3" role="alert">
                 <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                These links returned "Too Many Requests" (429). They might be valid but were rate-limited during the scan.
+                These pages returned "Too Many Requests" (429). The crawler may have been blocked.
             </div>
             <div class="table-responsive">
                 <table class="table table-striped table-hover mb-0">
-                    <thead><tr><th>Source Page</th><th>Target URL</th><th>Anchor Text</th></tr></thead>
+                    <thead><tr><th>URL</th><th>Status</th></tr></thead>
                     <tbody>
-                        {% for link in analysis.rate_limit_errors %}
+                        {% for page in analysis.rate_limit_errors %}
                         <tr>
-                            <td class="text-break"><a href="{{ link.source_url }}" target="_blank">{{ link.source_url }}</a></td>
-                            <td class="text-break"><a href="{{ link.target_url }}" target="_blank">{{ link.target_url }}</a></td>
-                            <td><em>{{ link.anchor_text or '(No Text)' }}</em></td>
+                            <td class="text-break"><a href="{{ page.url }}" target="_blank">{{ page.url }}</a></td>
+                            <td><span class="badge bg-warning text-dark">{{ page.status_code }}</span></td>
                         </tr>
                         {% endfor %}
                     </tbody>

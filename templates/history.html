@@ -14,7 +14,8 @@
                         <th>Total Scans</th>
                         <th>Latest Scan Date</th>
                         <th>Latest Status</th>
-                        <th>Actions</th>
+                        <th>Issues Found</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -30,6 +31,13 @@
                                 {{ scan.status }}
                             </span>
                         </td>
+                         <td>
+                            {% if scan.status == 'completed' %}
+                                <span class="badge bg-{% if scan.total_issues > 0 %}danger{% else %}success{% endif %}">
+                                    {{ scan.total_issues }} Issues
+                                </span>
+                            {% else %}-{% endif %}
+                        </td>
                         <td>
                             <a href="{{ url_for('url_history', url=scan.start_url) }}" class="btn btn-primary btn-sm">
                                 <i class="bi bi-eye-fill"></i> View Scans
@@ -37,7 +45,7 @@
                         </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="5" class="text-center p-4">No scans have been run yet.</td></tr>
+                    <tr><td colspan="6" class="text-center p-4">No scans have been run yet.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

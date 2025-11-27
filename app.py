@@ -12,9 +12,9 @@ from bs4 import BeautifulSoup
 
 # --- Local Imports ---
 from config import Config
-from models import db, Scan, Page, Setting, Link, Image
+from models import db, Scan, Page, Setting, Image
 from crawler import run_crawler
-from helpers import analyze_results, generate_csv, perform_content_analysis, check_spelling_grammar
+from helpers import analyze_results, generate_csv, perform_content_analysis, check_spelling_ai, generate_advanced_seo_ai
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -40,31 +40,14 @@ def build_site_context(scan_id):
         try:
             analysis = json.loads(scan.analysis_json)
             context += f"\n=== TECHNICAL ISSUES ===\n"
-            context += f"- Broken Links: {len(analysis.get('broken_links', []))}\n"
+            context += f"- Broken Links/Pages (404): {len(analysis.get('broken_links', []))}\n"
             context += f"- Rate Limit Errors (429): {len(analysis.get('rate_limit_errors', []))}\n"
             context += f"- Pages Missing Titles: {len(analysis.get('missing_titles', []))}\n"
             context += f"- Pages Missing Meta Descriptions: {len(analysis.get('missing_descriptions', []))}\n"
             context += f"- Images Missing Alt Text: {len(analysis.get('missing_alt_images', []))}\n"
             context += f"- Large Images (> {settings.get('max_image_size_kb')}KB): {len(analysis.get('large_images', []))}\n"
             context += f"- Thin Content Pages (< 300 words): {len(analysis.get('thin_content_pages', []))}\n"
-            context += f"- Pages with Spelling Issues: {len(analysis.get('spelling_issues', []))}\n"
         except: pass
-
-    # Add Homepage Content for context (limited to ~3000 chars for lightweight models)
-    home_page = Page.query.filter_by(scan_id=scan_id, url=scan.start_url).first()
-    if not home_page and scan.start_url.endswith('/'):
-         home_page = Page.query.filter_by(scan_id=scan_id, url=scan.start_url[:-1]).first()
-    elif not home_page and not scan.start_url.endswith('/'):
-         home_page = Page.query.filter_by(scan_id=scan_id, url=scan.start_url + '/').first()
-
-    if home_page and home_page.html_content:
-        try:
-            soup = BeautifulSoup(home_page.html_content, 'html.parser')
-            for script in soup(["script", "style", "nav", "footer", "svg", "noscript"]): script.extract()
-            text = soup.get_text(separator=' ', strip=True)[:3000]
-            context += f"\n=== HOMEPAGE CONTENT EXCERPT ===\n{text}\n"
-        except: pass
-        
     return context
 
 # --- Routes ---
@@ -103,38 +86,29 @@ def view_results(scan_id):
 def view_scan_data(scan_id):
     scan = db.session.get(Scan, scan_id)
     if not scan: return "Scan not found", 404
-    pages = Page.query.filter_by(scan_id=scan.id).order_by(Page.url).all()
+    pages = Page.query.filter_by(scan_id=scan.id).order_by(Page.category, Page.url).all()
     return render_template('intermediary_results.html', scan=scan, pages=pages)
 
-# --- NEW CHAT ROUTES ---
 @app.route('/chat/<int:scan_id>')
 def chat_page(scan_id):
-    """Renders the chat interface for a specific scan."""
     scan = db.session.get(Scan, scan_id)
     if not scan: return "Scan not found", 404
     return render_template('chat.html', scan=scan)
 
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
-    """Handles chat messages using Ollama."""
     data = request.json
     scan_id = data.get('scan_id')
     user_message = data.get('message')
     history = data.get('history', [])
-    
     try:
         system_prompt = build_site_context(scan_id)
         messages = [{'role': 'system', 'content': system_prompt}] + history + [{'role': 'user', 'content': user_message}]
-        
-        # Using 'gemma2:2b' as a robust lightweight model. 
-        # Change to 'llama3.2:1b', 'qwen2.5:0.5b', or your preferred model name if different.
         response = ollama.chat(model='gemma2:2b', messages=messages)
-        
         return jsonify({'response': response['message']['content']})
     except Exception as e:
         print(f"Chat Error: {e}")
         return jsonify({'error': str(e)}), 500
-# -----------------------
 
 @app.route('/analyze/<int:scan_id>', methods=['POST'])
 def perform_analysis(scan_id):
@@ -146,23 +120,26 @@ def perform_analysis(scan_id):
 
     try:
         settings = {s.setting_key: s.setting_value for s in Setting.query.all()}
-        pages = Page.query.filter_by(scan_id=scan.id).all()
+        pages = Page.query.filter_by(scan_id=scan.id, category='page').all()
         domain = urlparse(scan.start_url).netloc
 
         for page in pages:
             if page.status_code == 200:
                 perform_content_analysis(page, domain)
-                check_spelling_grammar(page)
+                check_spelling_ai(page)
+                generate_advanced_seo_ai(page) # New AI call
         
         db.session.commit() 
 
-        analysis = analyze_results(pages, settings)
+        all_pages = Page.query.filter_by(scan_id=scan.id).all()
+        analysis = analyze_results(all_pages, settings)
         
         def serialize_page_list(page_list):
              return [{'url': p.url, 'title': p.title, 'word_count': p.word_count, 'flesch_score': p.flesch_score} for p in page_list]
 
-        analysis['rate_limit_errors'] = [{'source_url': l.source_url, 'target_url': l.target_url, 'anchor_text': l.anchor_text, 'status_code': l.status_code} for l in Link.query.filter_by(scan_id=scan.id, status_code=429).all()]
-        analysis['broken_links'] = [{'source_url': l.source_url, 'target_url': l.target_url, 'anchor_text': l.anchor_text, 'status_code': l.status_code} for l in Link.query.filter(Link.scan_id == scan.id, Link.is_broken == True, Link.status_code != 429).all()]
+        analysis['rate_limit_errors'] = [{'url': p.url, 'status_code': p.status_code} for p in analysis['rate_limit_errors']]
+        analysis['broken_links'] = [{'url': p.url, 'status_code': p.status_code} for p in analysis['broken_links']]
+        
         analysis['large_images'] = [{'image_url': i.image_url, 'page_url': i.page_url, 'file_size_kb': i.file_size_kb} for i in Image.query.filter_by(scan_id=scan.id, is_large=True).all()]
         analysis['missing_alt_images'] = [{'image_url': i.image_url, 'page_url': i.page_url} for i in Image.query.filter_by(scan_id=scan.id, missing_alt=True).all()]
 
@@ -172,8 +149,7 @@ def perform_analysis(scan_id):
         for key in ['thin_content_pages', 'slow_read_pages', 'complex_readability', 'missing_h1', 'multiple_h1']:
             analysis[key] = serialize_page_list(analysis[key])
 
-        analysis['spelling_issues'] = [{'url': p.url, 'count': p.spelling_issues_count, 'examples': p.spelling_examples} for p in analysis['spelling_issues']]
-        analysis['grammar_issues'] = [{'url': p.url, 'count': p.grammar_issues_count, 'context': json.loads(p.grammar_error_context) if p.grammar_error_context else []} for p in analysis['grammar_issues']]
+        analysis['spelling_issues'] = [{'url': p.url, 'count': p.spelling_issues_count, 'examples': json.loads(p.spelling_examples) if p.spelling_examples else []} for p in analysis['spelling_issues']]
 
         for key in ['duplicate_titles', 'duplicate_descriptions', 'duplicate_content']:
             analysis[key] = {k: [{'url': p.url} for p in v] for k, v in analysis[key].items()}
@@ -182,7 +158,7 @@ def perform_analysis(scan_id):
             'broken_links', 'large_images', 'missing_alt_images', 
             'missing_titles', 'missing_descriptions', 'orphaned_pages',
             'thin_content_pages', 'complex_readability', 'missing_h1', 'multiple_h1',
-            'spelling_issues', 'grammar_issues'
+            'spelling_issues'
         ]])
         
         scan.analysis_json = json.dumps(analysis)
@@ -198,22 +174,13 @@ def perform_analysis(scan_id):
 @app.route('/scan_status/<int:scan_id>')
 def scan_status(scan_id):
     scan = db.session.get(Scan, scan_id)
-    if not scan:
-        return jsonify({'status': 'not_found'})
+    if not scan: return jsonify({'status': 'not_found'})
     
-    # 1. Get current progress
     current_count = scan.new_urls_count + scan.updated_urls_count + scan.existing_urls_count
-    
-    # 2. Get the max limit to calculate percentage
-    # We fetch it freshly here in case it changed, or you can cache it.
     max_pages_setting = Setting.query.filter_by(setting_key='max_pages_limit').first()
     max_pages = int(max_pages_setting.setting_value) if max_pages_setting else 200
 
-    return jsonify({
-        'status': scan.status,
-        'current': current_count,
-        'total': max_pages
-    })
+    return jsonify({'status': scan.status, 'current': current_count, 'total': max_pages})
 
 @app.route('/history')
 def history():
@@ -246,7 +213,7 @@ def settings():
 
 @app.route('/export/csv/<int:scan_id>')
 def export_csv(scan_id):
-    pages = Page.query.filter_by(scan_id=scan_id).all()
+    pages = Page.query.filter_by(scan_id=scan_id, category='page').all()
     return Response(generate_csv(pages), mimetype="text/csv", headers={"Content-disposition": f"attachment; filename=scan_{scan_id}_export.csv"})
 
 @app.route('/export/json/<int:scan_id>')
@@ -255,14 +222,9 @@ def export_json(scan_id):
     data = []
     for p in pages:
         data.append({
-            'url': p.url, 'status_code': p.status_code, 'title': p.title, 'meta_description': p.meta_description, 
-            'is_orphan': p.is_orphan, 'incoming_links': p.incoming_links,
-            'metrics': {
-                'word_count': p.word_count, 'reading_time_min': p.reading_time_min, 'flesch_score': p.flesch_score,
-                'h1_count': p.h1_count, 'internal_links_on_page': p.internal_links_count, 'external_links_on_page': p.external_links_count,
-                'top_keywords': p.top_keywords,
-                'spelling_issues_count': p.spelling_issues_count, 'grammar_issues_count': p.grammar_issues_count
-            }
+            'url': p.url, 'status_code': p.status_code, 'category': p.category,
+            'title': p.title, 'meta_description': p.meta_description, 
+            'metrics': {'word_count': p.word_count, 'flesch_score': p.flesch_score, 'h1_count': p.h1_count}
         })
     return Response(json.dumps(data, indent=4), mimetype="application/json", headers={"Content-disposition": f"attachment; filename=scan_{scan_id}_export.json"})
 
@@ -270,7 +232,15 @@ def setup_database(app_context):
     with app_context:
         db.create_all()
         if not Setting.query.first():
-            db.session.bulk_save_objects([Setting(setting_key='min_title_length', setting_value='10'), Setting(setting_key='max_title_length', setting_value='60'), Setting(setting_key='min_desc_length', setting_value='70'), Setting(setting_key='max_desc_length', setting_value='160'), Setting(setting_key='max_image_size_kb', setting_value='150'), Setting(setting_key='max_pages_limit', setting_value='200')])
+            db.session.bulk_save_objects([
+                Setting(setting_key='min_title_length', setting_value='10'),
+                Setting(setting_key='max_title_length', setting_value='60'),
+                Setting(setting_key='min_desc_length', setting_value='70'),
+                Setting(setting_key='max_desc_length', setting_value='160'),
+                Setting(setting_key='max_image_size_kb', setting_value='150'),
+                Setting(setting_key='max_pages_limit', setting_value='200'),
+                Setting(setting_key='request_interval', setting_value='5')
+            ])
             db.session.commit()
 
 if __name__ == '__main__':
